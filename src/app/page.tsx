@@ -45,9 +45,20 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2 py-4">
-        <div className="text-5xl mb-3">🎮</div>
-        <h1 className="text-2xl font-bold text-brand-text">משחקי יום הגיבוש</h1>
-        <p className="text-brand-muted text-sm max-w-xs mx-auto">חמישה משחקים, אחד יוצא מן הכלל. עבדו יחד, נצחו ביחד.</p>
+       <div className="flex justify-center mb-3">
+  <Image
+    src="/logo.png"
+    alt="Magenta Medical"
+    width={260}
+    height={90}
+    priority
+    className="h-20 w-auto object-contain"
+  />
+</div>
+
+<h1 className="text-2xl font-bold text-brand-text">
+  יום בריכה בחצב - אביב הוואי ובידור
+</h1>
       </div>
 
       {state?.startedAt && (
