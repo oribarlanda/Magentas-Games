@@ -5,19 +5,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          bg: "#0F1117",
-          surface: "#1A1D27",
-          border: "#2A2D3E",
-          accent: "#6C63FF",
-          accentHover: "#5A52E0",
-          text: "#E8E9F0",
-          muted: "#8B8FA8",
-          easy: "#22C55E",
-          medium: "#EAB308",
-          hard: "#F97316",
-          expert: "#A855F7",
-        },
+       brand: {
+  bg: "#FFFFFF",
+  surface: "#F8FAFC",
+  border: "#E5E7EB",
+  accent: "#E0007A",
+  accentHover: "#C00068",
+  text: "#111827",
+  muted: "#6B7280",
+  easy: "#16A34A",
+  medium: "#CA8A04",
+  hard: "#EA580C",
+  expert: "#9333EA",
+},
       },
       animation: {
         "bounce-in": "bounceIn 0.4s cubic-bezier(0.36,0.07,0.19,0.97)",
