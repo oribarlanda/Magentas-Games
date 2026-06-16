@@ -1,6 +1,6 @@
 export interface ConnectionGroup {
   title: string;
-  difficulty: "easy" | "medium" | "hard" | "expert";
+  difficulty: string;
   hint: string;
   words: string[];
 }
