@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { GAMES } from "@/lib/games";
 import { getState, getTotalScore, allSolved, resetState } from "@/lib/storage";
 import type { AppState, GameId } from "@/types";
