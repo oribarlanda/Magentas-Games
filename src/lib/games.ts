@@ -10,17 +10,10 @@ export const GAMES: GameInfo[] = [
   },
   {
     id: "logic-easy",
-    title: "הגיונית – קל",
-    description: "חידה לוגית ברמת קושי קלה. חישבו מחוץ לקופסה.",
-    icon: "🟢",
-    path: "/logic/easy",
-  },
-  {
-    id: "logic-hard",
-    title: "הגיונית – קשה",
-    description: "חידה לוגית ברמת קושי גבוהה. לא מה שנראה.",
-    icon: "🔴",
-    path: "/logic/hard",
+    title: "הגיונית",
+    description: "חידה לוגית. פשוטה להבנה, קשה לפתרון.",
+    icon: "🧠",
+    path: "/logic",
   },
   {
     id: "chain",
