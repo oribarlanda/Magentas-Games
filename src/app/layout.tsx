@@ -4,7 +4,7 @@ import Header from "@/components/ui/Header";
 import ScoreBar from "@/components/ui/ScoreBar";
 
 export const metadata: Metadata = {
-  title: "משחקי יום הגיבוש",
+  title: "החידות של יעל ואורי",
   description: "אתר משחקים ליום גיבוש החברה",
 };
 
