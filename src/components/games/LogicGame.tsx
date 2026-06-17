@@ -214,4 +214,94 @@ export default function LogicGame({ data }: { data: LogicData }) {
           <button
             onClick={handleHint}
             disabled={hintsUsed >= maxHints}
-            className="flex flex-col items-center gap-1 px-3 py-2 bg-brand-surface border border-brand-border rounded-xl text-brand-muted hover:text-brand-text
+            className="flex flex-col items-center gap-1 px-3 py-2 bg-brand-surface border border-brand-border rounded-xl text-brand-muted hover:text-brand-text hover:border-brand-accent transition-colors disabled:opacity-30 text-xs"
+          >
+            <span className="text-lg">💡</span>
+            <span>תנו לי רמז</span>
+            <span>({maxHints - hintsUsed}/{maxHints})</span>
+          </button>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleClearAll}
+              className="flex flex-col items-center gap-1 px-3 py-2 bg-brand-surface border border-brand-border rounded-xl text-brand-muted hover:text-brand-text transition-colors text-xs"
+            >
+              <span className="text-lg">↺</span>
+              <span>לנקות הכל</span>
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }))}
+              className="flex flex-col items-center gap-1 px-3 py-2 bg-brand-surface border border-brand-border rounded-xl text-brand-muted hover:text-brand-text transition-colors text-xs"
+            >
+              <span className="text-lg">✕</span>
+              <span>מחיקה</span>
+            </button>
+            <button
+              onClick={handleCheck}
+              disabled={!allFilled}
+              className="flex flex-col items-center gap-1 px-4 py-2 bg-brand-accent hover:bg-brand-accentHover disabled:opacity-40 text-white rounded-xl transition-colors text-xs font-medium"
+            >
+              <span className="text-lg">✓</span>
+              <span>אישור</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ניסיונות */}
+      {!finished && (
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-brand-muted text-sm">ניסיונות</span>
+          <div className="flex gap-1.5">
+            {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
+              <div
+                key={i}
+                className={`w-3 h-3 rounded-full ${i < attempts ? "bg-brand-accent" : "bg-brand-border"}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* תוצאה */}
+      {finished && (
+        <GameResult solved={won} score={score} shareText={shareText} explanation={data.explanation} />
+      )}
+    </div>
+  );
+}
+
+function VirtualKeyboard({ onKey }: { onKey: (k: string) => void }) {
+  const rows = [
+    ["פ", "ו", "ט", "א", "ר", "ק", "⌫"],
+    ["ל", "ח", "י", "ע", "כ", "ג", "ד", "ש"],
+    ["ת", "צ", "מ", "נ", "ה", "ב", "ס", "ז", "↵"],
+  ];
+
+  return (
+    <div className="space-y-1.5 mt-2" dir="rtl">
+      {rows.map((row, ri) => (
+        <div key={ri} className="flex justify-center gap-1">
+          {row.map((k) => (
+            <button
+              key={k}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                if (k === "⌫") onKey("Backspace");
+                else if (k === "↵") onKey("Enter");
+                else onKey(k);
+              }}
+              className={`
+                h-11 rounded-lg border border-brand-border bg-brand-surface text-brand-text font-medium
+                active:bg-brand-accent active:text-white active:border-brand-accent transition-colors select-none
+                ${k === "⌫" || k === "↵" ? "px-3 text-sm" : "w-9 text-base"}
+              `}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
