@@ -34,7 +34,7 @@ export interface WhoAmIData {
   acceptedAnswers: string[];
   clues: string[];
 }
-export type GameId = "connections" | "logic" | "chain" | "which-song" | "who-am-i";
+export type GameId = "connections" | "logic-easy" | "logic-hard" | "chain" | "which-song" | "who-am-i";
 export interface GameScore {
   gameId: GameId;
   score: number;
