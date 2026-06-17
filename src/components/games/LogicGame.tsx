@@ -168,3 +168,136 @@ export default function LogicGame({ data, gameId }: { data: LogicData; gameId: G
   };
 
   const getCellState = (i: number) => {
+    if (locked.has(i)) return "locked";
+    if (revealed.has(i)) return "revealed";
+    if (activeIdx === i) return "active";
+    return "empty";
+  };
+
+  const allFilled = letterIndices.every(i => locked.has(i) || revealed.has(i) || typed[i]);
+
+  const score = calcScore(100, hintsUsed, maxHints);
+  const shareText = `🧠 פתרתי את "הגיונית"!\nניקוד: ${score}`;
+
+  return (
+    <div className="space-y-6">
+      {/* שאלה */}
+      <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
+        <p className="text-brand-text text-lg leading-relaxed font-medium text-right">{data.question}</p>
+      </div>
+
+      {/* אותיות – כל מילה בשורה משלה */}
+      <div className={`space-y-2 ${shake ? "animate-shake" : ""}`}>
+        {words.map((word, wi) => (
+          <div key={wi} className="flex justify-center gap-2" dir="rtl">
+            {word.map(({ char, globalIdx }) => {
+              const state = getCellState(globalIdx);
+              const displayLetter =
+                state === "locked" ? char :
+                state === "revealed" ? char :
+                typed[globalIdx] || "";
+              return (
+                <button
+                  key={globalIdx}
+                  onClick={() => handleCellClick(globalIdx)}
+                  disabled={finished}
+                  className={`
+                    w-12 h-14 rounded-xl border-2 text-xl font-bold transition-all flex items-center justify-center
+                    ${state === "locked"
+                      ? "bg-green-500 border-green-500 text-white"
+                      : state === "revealed"
+                      ? "bg-green-200 border-green-400 text-green-800"
+                      : state === "active"
+                      ? "bg-brand-surface border-brand-accent text-brand-text shadow-sm shadow-brand-accent/30"
+                      : "bg-brand-surface border-brand-border text-brand-text hover:border-brand-muted"}
+                  `}
+                >
+                  {displayLetter}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* מקלדת */}
+      {!finished && <VirtualKeyboard onKey={(k) => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+      }} />}
+
+      {/* כפתורים */}
+      {!finished && (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <button onClick={handleHint} disabled={hintsUsed >= maxHints}
+            className="flex flex-col items-center gap-1 px-3 py-2 bg-brand-surface border border-brand-border rounded-xl text-brand-muted hover:text-brand-text hover:border-brand-accent transition-colors disabled:opacity-30 text-xs">
+            <span className="text-lg">💡</span>
+            <span>תנו לי רמז</span>
+            <span>({maxHints - hintsUsed}/{maxHints})</span>
+          </button>
+          <div className="flex gap-2">
+            <button onClick={handleClearAll}
+              className="flex flex-col items-center gap-1 px-3 py-2 bg-brand-surface border border-brand-border rounded-xl text-brand-muted hover:text-brand-text transition-colors text-xs">
+              <span className="text-lg">↺</span>
+              <span>לנקות הכל</span>
+            </button>
+            <button onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }))}
+              className="flex flex-col items-center gap-1 px-3 py-2 bg-brand-surface border border-brand-border rounded-xl text-brand-muted hover:text-brand-text transition-colors text-xs">
+              <span className="text-lg">✕</span>
+              <span>מחיקה</span>
+            </button>
+            <button onClick={handleCheck} disabled={!allFilled}
+              className="flex flex-col items-center gap-1 px-4 py-2 bg-brand-accent hover:bg-brand-accentHover disabled:opacity-40 text-white rounded-xl transition-colors text-xs font-medium">
+              <span className="text-lg">✓</span>
+              <span>אישור</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ניסיונות */}
+      {!finished && (
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-brand-muted text-sm">ניסיונות</span>
+          <div className="flex gap-1.5">
+            {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
+              <div key={i} className={`w-3 h-3 rounded-full ${i < attempts ? "bg-brand-accent" : "bg-brand-border"}`} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* תוצאה */}
+      {finished && (
+        <GameResult solved={won} score={score} shareText={shareText} explanation={data.explanation} />
+      )}
+    </div>
+  );
+}
+
+function VirtualKeyboard({ onKey }: { onKey: (k: string) => void }) {
+  const rows = [
+    ["פ", "ו", "ט", "א", "ר", "ק", "⌫"],
+    ["ל", "ח", "י", "ע", "כ", "ג", "ד", "ש"],
+    ["ת", "צ", "מ", "נ", "ה", "ב", "ס", "ז", "↵"],
+  ];
+  return (
+    <div className="space-y-1.5 mt-2" dir="rtl">
+      {rows.map((row, ri) => (
+        <div key={ri} className="flex justify-center gap-1">
+          {row.map((k) => (
+            <button key={k}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                if (k === "⌫") onKey("Backspace");
+                else if (k === "↵") onKey("Enter");
+                else onKey(k);
+              }}
+              className={`h-11 rounded-lg border border-brand-border bg-brand-surface text-brand-text font-medium active:bg-brand-accent active:text-white active:border-brand-accent transition-colors select-none ${k === "⌫" || k === "↵" ? "px-3 text-sm" : "w-9 text-base"}`}>
+              {k}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
