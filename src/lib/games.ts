@@ -11,7 +11,7 @@ export const GAMES: GameInfo[] = [
   {
     id: "logic-easy",
     title: "הגיונית",
-    description: "חידה לוגית. פשוטה להבנה, קשה לפתרון.",
+    description: "חידה לוגית. קונספט פשוט, פתרון פחות פשוט.",
     icon: "🧠",
     path: "/logic",
   },
@@ -25,14 +25,14 @@ export const GAMES: GameInfo[] = [
   {
     id: "which-song",
     title: "איזה שיר",
-    description: "זיהוי שיר לפי תיאור ורמזים בלבד.",
+    description: "זיהוי שיר לפי התרגום שלו בלבד.",
     icon: "🎵",
     path: "/which-song",
   },
   {
     id: "who-am-i",
     title: "מי אני",
-    description: "רמזים בהדרגה. פחות רמזים = יותר נקודות.",
+    description: "זהו את הדמות המסתורית בתמונה כמה שיותר מהר.",
     icon: "🕵️",
     path: "/who-am-i",
   },
