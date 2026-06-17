@@ -4,7 +4,7 @@ import GamePageWrapper from "@/components/ui/GamePageWrapper";
 
 export default function WhoAmIPage() {
   return (
-    <GamePageWrapper title="מי אני" icon="🕵️" subtitle="נחשו מי דהמות המסתורית בתמונה.">
+    <GamePageWrapper title="מי אני" icon="🕵️" subtitle="נחשו מי הדמות המסתורית בתמונה.">
       <WhoAmIGame data={whoamiData} />
     </GamePageWrapper>
   );
