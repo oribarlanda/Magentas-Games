@@ -4,16 +4,35 @@ import type { ConnectionsData, ConnectionGroup } from "@/types";
 import { saveScore, calcScore } from "@/lib/storage";
 import GameResult from "@/components/ui/GameResult";
 
+// צבעים לפי 5 רמות קושי – טקסט שחור בכולם
 const COLORS: Record<string, string> = {
-  easy:   "bg-green-500/20 border-green-500/40 text-green-300",
-  medium: "bg-yellow-500/20 border-yellow-500/40 text-yellow-300",
-  hard:   "bg-orange-500/20 border-orange-500/40 text-orange-300",
-  expert: "bg-purple-500/20 border-purple-500/40 text-purple-300",
+  "very easy": "bg-green-200  border-green-300  text-black",
+  "easy":      "bg-yellow-100 border-yellow-300 text-black",
+  "medium":    "bg-orange-100 border-orange-300 text-black",
+  "hard":      "bg-purple-200 border-purple-300 text-black",
+  "expert":    "bg-red-200    border-red-300    text-black",
 };
-const LABELS: Record<string, string> = { easy: "קל", medium: "בינוני", hard: "קשה", expert: "מומחה" };
-const EMOJIS: Record<string, string> = { easy: "🟩🟩🟩🟩", medium: "🟨🟨🟨🟨", hard: "🟧🟧🟧🟧", expert: "🟪🟪🟪🟪" };
+const LABELS: Record<string, string> = {
+  "very easy": "קל מאוד",
+  "easy":      "קל",
+  "medium":    "בינוני",
+  "hard":      "קשה",
+  "expert":    "קשה מאוד",
+};
+const EMOJIS: Record<string, string> = {
+  "very easy": "🟩🟩🟩🟩",
+  "easy":      "🟨🟨🟨🟨",
+  "medium":    "🟧🟧🟧🟧",
+  "hard":      "🟪🟪🟪🟪",
+  "expert":    "🟥🟥🟥🟥",
+};
 
 function shuffle<T>(a: T[]): T[] { return [...a].sort(() => Math.random() - 0.5); }
+
+// כמה מילים מהבחירה נמצאות בקבוצה נתונה
+function countMatches(group: ConnectionGroup, selected: string[]): number {
+  return group.words.filter(w => selected.includes(w)).length;
+}
 
 export default function ConnectionsGame({ data }: { data: ConnectionsData }) {
   const [words, setWords] = useState<string[]>(() => shuffle(data.groups.flatMap(g => g.words)));
@@ -26,8 +45,14 @@ export default function ConnectionsGame({ data }: { data: ConnectionsData }) {
   const [finished, setFinished] = useState(false);
   const [won, setWon] = useState(false);
   const [shareRows, setShareRows] = useState<string[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
 
   const solvedWords = solved.flatMap(g => g.words);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   const toggle = (w: string) => {
     if (solvedWords.includes(w)) return;
@@ -40,7 +65,7 @@ export default function ConnectionsGame({ data }: { data: ConnectionsData }) {
     if (match) {
       const newSolved = [...solved, match];
       setSolved(newSolved);
-      setShareRows(r => [...r, EMOJIS[match.difficulty]]);
+      setShareRows(r => [...r, EMOJIS[match.difficulty] ?? "⬛⬛⬛⬛"]);
       setSelected([]);
       setActiveHint(null);
       if (newSolved.length === data.groups.length) {
@@ -51,6 +76,11 @@ export default function ConnectionsGame({ data }: { data: ConnectionsData }) {
         setFinished(true);
       }
     } else {
+      // בדוק אם יש קבוצה עם 3 התאמות מתוך הבחירה
+      const threeMatch = data.groups.find(g => !solved.includes(g) && countMatches(g, selected) === 3);
+      if (threeMatch) {
+        showToast("כמעט! שלוש מתוך הארבע נכונים 🔥");
+      }
       setShake(true);
       setTimeout(() => setShake(false), 600);
       const next = attempts - 1;
@@ -71,12 +101,21 @@ export default function ConnectionsGame({ data }: { data: ConnectionsData }) {
   const shareText = `🎉 פתרתי את "מה הקשר"!\n\n${shareRows.join("\n")}\n\nניקוד: ${score}`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-brand-accent text-white px-5 py-3 rounded-2xl shadow-lg font-medium text-sm animate-bounce-in">
+          {toast}
+        </div>
+      )}
+
+      {/* קבוצות שנפתרו */}
       {solved.map(g => (
-        <div key={g.title} className={`rounded-xl border p-3 text-center animate-bounce-in ${COLORS[g.difficulty]}`}>
-          <div className="text-xs font-medium mb-1 opacity-70">{LABELS[g.difficulty]}</div>
+        <div key={g.title} className={`rounded-xl border p-3 text-center animate-bounce-in ${COLORS[g.difficulty] ?? "bg-gray-200 border-gray-300 text-black"}`}>
+          <div className="text-xs font-medium mb-1 opacity-60">{LABELS[g.difficulty] ?? g.difficulty}</div>
           <div className="font-bold">{g.title}</div>
-          <div className="text-sm mt-1 opacity-80">{g.words.join(" · ")}</div>
+          <div className="text-sm mt-1 opacity-70">{g.words.join(" · ")}</div>
         </div>
       ))}
 
