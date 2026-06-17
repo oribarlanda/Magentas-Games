@@ -57,11 +57,11 @@ export default function Header() {
             </h2>
 
             <ul className="space-y-3 text-brand-muted text-sm">
-              <li>🔗 מה הקשר – מצאו 4 קבוצות של 4 מילים.</li>
+              <li>🔗 מה הקשר – מצאו 5 קבוצות של 4 מילים.</li>
               <li>🧠 הגיונית – פתרו חידות היגיון.</li>
               <li>⛓ השרשרת – חברו בין מושגים.</li>
-              <li>🎵 איזה שיר – זהו שירים לפי רמזים.</li>
-              <li>🕵️ מי אני – גלו את הזהות לפי רמזים.</li>
+              <li>🎵 איזה שיר – זהו את השיר המתורגם.</li>
+              <li>🕵️ מי אני – גלו מי מסתתר בתמונה.</li>
             </ul>
 
             <p className="mt-4 text-xs text-brand-muted">
