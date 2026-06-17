@@ -2,6 +2,12 @@
   "attempts": 5,
   "groups": [
     {
+      "title": "מספרים",
+      "difficulty": "very easy",
+      "hint": "כמה",
+      "words": ["4", "3", "2", "1"]
+    },
+    {
       "title": "דוברי ספרדית",
       "difficulty": "easy",
       "hint": "מונדיאל",
