@@ -4,7 +4,7 @@ export const GAMES: GameInfo[] = [
   {
     id: "connections",
     title: "מה הקשר",
-    description: "16 מילים, 4 קבוצות נסתרות. מצאו את הקשר המשותף.",
+    description: "20 מילים, 5 קבוצות נסתרות. מצאו את הקשר המשותף.",
     icon: "🔗",
     path: "/connections",
   },
