@@ -9,11 +9,18 @@ export const GAMES: GameInfo[] = [
     path: "/connections",
   },
   {
-    id: "logic",
-    title: "הגיונית",
-    description: "חידה לוגית אחת. פשוטה להבנה, קשה לפתרון.",
-    icon: "🧠",
-    path: "/logic",
+    id: "logic-easy",
+    title: "הגיונית – קל",
+    description: "חידה לוגית ברמת קושי קלה. חישבו מחוץ לקופסה.",
+    icon: "🟢",
+    path: "/logic/easy",
+  },
+  {
+    id: "logic-hard",
+    title: "הגיונית – קשה",
+    description: "חידה לוגית ברמת קושי גבוהה. לא מה שנראה.",
+    icon: "🔴",
+    path: "/logic/hard",
   },
   {
     id: "chain",
