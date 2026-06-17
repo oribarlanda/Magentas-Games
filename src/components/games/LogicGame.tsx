@@ -6,9 +6,6 @@ import GameResult from "@/components/ui/GameResult";
 
 const MAX_ATTEMPTS = 3;
 
-// פיצול תשובה למילים עם אינדקסים גלובליים
-// לדוגמה: "אח של" → [{word:"אח", indices:[0,1]}, {word:"של", indices:[3,4,5]}]
-// הרווח (אינדקס 2) מדולג אוטומטית
 function buildWords(answer: string): { char: string; globalIdx: number }[][] {
   const words: { char: string; globalIdx: number }[][] = [];
   let currentWord: { char: string; globalIdx: number }[] = [];
@@ -25,11 +22,10 @@ function buildWords(answer: string): { char: string; globalIdx: number }[][] {
 
 export default function LogicGame({ data, gameId }: { data: LogicData; gameId: GameId }) {
   const answer = data.answers[0].trim();
-  const answerChars = answer.split(""); // כולל רווחים
+  const answerChars = answer.split("");
   const totalLen = answerChars.length;
   const words = buildWords(answer);
 
-  // אינדקסים שאינם רווח
   const letterIndices = answerChars
     .map((c, i) => (c !== " " ? i : -1))
     .filter(i => i !== -1);
@@ -46,7 +42,6 @@ export default function LogicGame({ data, gameId }: { data: LogicData; gameId: G
 
   const maxHints = 2;
 
-  // מצא את האינדקס הבא הפנוי (לא רווח, לא נעול, לא נחשף)
   const nextFreeIdx = useCallback((from: number, direction: 1 | -1 = 1): number | null => {
     let i = from + direction;
     while (i >= 0 && i < totalLen) {
@@ -57,13 +52,11 @@ export default function LogicGame({ data, gameId }: { data: LogicData; gameId: G
   }, [answerChars, locked, revealed, totalLen]);
 
   useEffect(() => {
-    // אחרי כל שינוי ב-locked/revealed, מצא את הראשון הפנוי
     const first = letterIndices.find(i => !locked.has(i) && !revealed.has(i));
     setActiveIdx(first ?? null);
   }, [locked, revealed]); // eslint-disable-line
 
   const handleCheck = useCallback(() => {
-    // בנה ניחוש: רווחים נשארים רווחים, שאר לפי typed/locked/revealed
     const guess = answerChars.map((correct, i) => {
       if (correct === " ") return " ";
       if (locked.has(i) || revealed.has(i)) return correct;
@@ -148,15 +141,14 @@ export default function LogicGame({ data, gameId }: { data: LogicData; gameId: G
 
   const handleHint = () => {
     if (hintsUsed >= maxHints) return;
-    for (const i of letterIndices) {
-      if (!locked.has(i) && !revealed.has(i)) {
-        const newRevealed = new Set(revealed); newRevealed.add(i);
-        const newTyped = [...typed]; newTyped[i] = "";
-        setRevealed(newRevealed); setTyped(newTyped);
-        setHintsUsed(h => h + 1);
-        break;
-      }
-    }
+    const target = (activeIdx !== null && !locked.has(activeIdx) && !revealed.has(activeIdx))
+      ? activeIdx
+      : letterIndices.find(i => !locked.has(i) && !revealed.has(i)) ?? null;
+    if (target === null) return;
+    const newRevealed = new Set(revealed); newRevealed.add(target);
+    const newTyped = [...typed]; newTyped[target] = "";
+    setRevealed(newRevealed); setTyped(newTyped);
+    setHintsUsed(h => h + 1);
   };
 
   const handleClearAll = () => {
