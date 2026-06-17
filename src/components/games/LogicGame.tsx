@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import type { LogicData } from "@/types";
+import type { LogicData, GameId } from "@/types";
 import { saveScore, calcScore } from "@/lib/storage";
 import GameResult from "@/components/ui/GameResult";
 
 const MAX_ATTEMPTS = 3;
 
-export default function LogicGame({ data }: { data: LogicData }) {
+export default function LogicGame({ data, gameId }: { data: LogicData; gameId: GameId }) {
   const answer = data.answers[0].trim();
   const answerLetters = answer.split("");
   const wordLength = answerLetters.length;
@@ -43,7 +43,7 @@ export default function LogicGame({ data }: { data: LogicData }) {
     if (isCorrect) {
       setLocked(new Set(answerLetters.map((_, i) => i)));
       const score = calcScore(100, hintsUsed, maxHints);
-      saveScore({ gameId: "logic", score, solved: true, hintsUsed, completedAt: Date.now() });
+      saveScore({ gameId, score, solved: true, hintsUsed, completedAt: Date.now() });
       window.dispatchEvent(new Event("score-updated"));
       setWon(true);
       setFinished(true);
@@ -67,11 +67,11 @@ export default function LogicGame({ data }: { data: LogicData }) {
       const next = attempts - 1;
       setAttempts(next);
       if (next <= 0) {
-        saveScore({ gameId: "logic", score: 0, solved: false, hintsUsed, completedAt: Date.now() });
+        saveScore({ gameId, score: 0, solved: false, hintsUsed, completedAt: Date.now() });
         setFinished(true);
       }
     }
-  }, [typed, locked, revealed, answerLetters, attempts, hintsUsed, data.answers]); // eslint-disable-line
+  }, [typed, locked, revealed, answerLetters, attempts, hintsUsed, data.answers, gameId]); // eslint-disable-line
 
   const handleKey = useCallback((e: KeyboardEvent) => {
     if (finished) return;
@@ -167,12 +167,10 @@ export default function LogicGame({ data }: { data: LogicData }) {
 
   return (
     <div className="space-y-6">
-      {/* שאלה */}
       <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
         <p className="text-brand-text text-lg leading-relaxed font-medium text-right">{data.question}</p>
       </div>
 
-      {/* רשת אותיות */}
       <div className={`flex justify-center gap-2 flex-wrap ${shake ? "animate-shake" : ""}`} dir="rtl">
         {answerLetters.map((correct, i) => {
           const state = getCellState(i);
@@ -203,12 +201,10 @@ export default function LogicGame({ data }: { data: LogicData }) {
         })}
       </div>
 
-      {/* מקלדת וירטואלית */}
       {!finished && <VirtualKeyboard onKey={(k) => {
         window.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
       }} />}
 
-      {/* כפתורי פעולה */}
       {!finished && (
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <button
@@ -248,7 +244,6 @@ export default function LogicGame({ data }: { data: LogicData }) {
         </div>
       )}
 
-      {/* ניסיונות */}
       {!finished && (
         <div className="flex items-center justify-center gap-2">
           <span className="text-brand-muted text-sm">ניסיונות</span>
@@ -263,7 +258,6 @@ export default function LogicGame({ data }: { data: LogicData }) {
         </div>
       )}
 
-      {/* תוצאה */}
       {finished && (
         <GameResult solved={won} score={score} shareText={shareText} explanation={data.explanation} />
       )}
