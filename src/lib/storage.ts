@@ -6,7 +6,8 @@ function defaultState(): AppState {
   return {
     scores: {
       connections: null,
-      logic: null,
+      "logic-easy": null,
+      "logic-hard": null,
       chain: null,
       "which-song": null,
       "who-am-i": null,
@@ -40,7 +41,7 @@ export function getTotalScore(state: AppState): number {
 }
 
 export function allSolved(state: AppState): boolean {
-  const games: GameId[] = ["connections", "logic", "chain", "which-song", "who-am-i"];
+  const games: GameId[] = ["connections", "logic-easy", "logic-hard", "chain", "which-song", "who-am-i"];
   return games.every((g) => state.scores[g]?.solved);
 }
 
