@@ -50,7 +50,7 @@ export default function WhoAmIGame({ data }: { data: WhoAmIDataWithImage }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-brand-muted text-sm text-center">גלו מי בתמונה בכמה שפחות צעדים</p>
+      <p className="text-brand-muted text-sm text-center">גלו מי בתמונה בכמה שפחות צעדים - שימו לב! כל צעד נוסף מוריד ניקוד</p>
 
       {/* תמונה */}
       <div
