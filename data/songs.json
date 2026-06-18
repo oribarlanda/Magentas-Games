@@ -1,14 +1,14 @@
 {
   "answers": ["ארץ ישראל היפה", "ארץ ישראל"],
   "songTitle": "ארץ ישראל היפה",
-  "artist": "נחום היימן",
-  "year": "1967",
-  "image": "/song.jpg",
+  "artist": "Shahar & Roi (ft. GPT)",
+  "year": "2026",
+  "image": "/song.jpeg",
   "audio": "/song.mp3",
   "lines": [
-    "שורה ראשונה מהשיר",
-    "שורה שניה מהשיר",
-    "שורה שלישית מהשיר",
-    "שורה רביעית מהשיר"
+    "One guy’s got a radar, one’s got a sixth sense too",
+    "One can hear his footsteps long before he comes in view",
+    "Every new notification makes your heartbeat skip a beat",
+    "Area’s clear, my friends... you can go back to your seat"
   ]
 }
