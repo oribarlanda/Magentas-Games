@@ -65,7 +65,6 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
   const score = calcScore(100, hintsUsed, totalHints);
   const shareText = `🎵 פתרתי את "איזה שיר"!\nניקוד: ${score}`;
 
-  // סגנון פונט לכל טקסט של השיר
   const songFont: React.CSSProperties = {
     fontFamily: "'Segoe UI', 'Arial', sans-serif",
     fontWeight: 800,
@@ -77,8 +76,6 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
 
       {/* ── Header: תמונה מימין + מידע משמאל ── */}
       <div className="flex gap-4 items-start" dir="rtl">
-
-        {/* תמונה – מימין, מטושטשת עד רמז */}
         <div className="shrink-0 w-24 h-24 rounded-2xl overflow-hidden bg-brand-surface relative shadow-lg">
           {data.image ? (
             <Image
@@ -95,9 +92,7 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
           )}
         </div>
 
-        {/* מידע – משמאל לתמונה */}
         <div className="flex-1 space-y-1 pt-1">
-          {/* שם השיר – מטושטש עד פתרון */}
           <div
             style={songFont}
             className={`text-lg leading-tight transition-all duration-500 ${finished ? "text-brand-text" : "blur-sm select-none text-brand-muted"}`}
@@ -105,7 +100,6 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
             {data.songTitle}
           </div>
 
-          {/* אמן + שנה – מטושטש עד רמז */}
           <div
             style={songFont}
             className={`text-base leading-tight transition-all duration-500 ${hintUsed || finished ? "text-brand-text" : "blur-sm select-none text-brand-muted"}`}
@@ -113,7 +107,6 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
             {data.artist}, {data.year}
           </div>
 
-          {/* כפתור רמז / השמע */}
           {!finished && (
             <div className="pt-1">
               {!hintUsed ? (
@@ -151,7 +144,7 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
                 filter: isVisible ? "blur(0px)" : "blur(6px)",
                 userSelect: isVisible ? "auto" : "none",
                 transition: "filter 0.5s ease",
-                color: isVisible ? "var(--color-brand-text, #E8E9F0)" : "#8B8FA8",
+                color: isVisible ? "#2D2D2D" : "#8B8FA8",
               }}
             >
               {line}
@@ -164,8 +157,7 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
       {!finished && linesShown < totalLines && (
         <button
           onClick={() => setLinesShown(s => s + 1)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-brand-accent hover:bg-brand-accentHover text-white rounded-full text-sm font-bold transition-colors"
-          style={songFont}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-accent hover:bg-brand-accentHover text-white rounded-full transition-colors text-xs font-medium"
         >
           ‹ הציגו לי עוד שורה מהשיר
         </button>
