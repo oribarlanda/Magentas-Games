@@ -25,14 +25,25 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
   const [hintsUsed, setHintsUsed] = useState(0);
   const [finished, setFinished] = useState(false);
   const [won, setWon] = useState(false);
-  const [dragWord, setDragWord] = useState<string | null>(null);
 
-  const dragging = useRef<{ word: string; from: "pool" | "slot"; slotIdx?: number } | null>(null);
+  // מצב גרירה ויזואלית
+  const [dragState, setDragState] = useState<{
+    word: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const dragging = useRef<{
+    word: string;
+    from: "pool" | "slot";
+    slotIdx?: number;
+  } | null>(null);
+
   const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const norm = (s: string) => s.trim().toLowerCase();
 
-  const checkWin = useCallback((newLocked: boolean[], newSlots: (string | null)[]) => {
+  const checkWin = useCallback((newLocked: boolean[]) => {
     if (newLocked.every(Boolean)) {
       const score = calcScore(100, hintsUsed, data.links.length);
       saveScore({ gameId: "chain", score, solved: true, hintsUsed, completedAt: Date.now() });
@@ -42,7 +53,12 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
     }
   }, [hintsUsed, data.links.length]);
 
-  const placeWord = useCallback((word: string, fromPool: boolean, fromSlotIdx: number | undefined, toSlotIdx: number) => {
+  const placeWord = useCallback((
+    word: string,
+    fromPool: boolean,
+    fromSlotIdx: number | undefined,
+    toSlotIdx: number
+  ) => {
     if (locked[toSlotIdx]) return;
     setSlots(prevSlots => {
       const prevInSlot = prevSlots[toSlotIdx];
@@ -89,7 +105,7 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
       });
       setLocked(newLocked);
       setPool(prev => [...prev, ...returnToPool]);
-      checkWin(newLocked, newSlots);
+      checkWin(newLocked);
       return newSlots;
     });
   }, [locked, answers, checkWin]);
@@ -109,8 +125,8 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
     setSlots(newSlots);
     setLocked(newLocked);
     setHintsUsed(h => h + 1);
-    setDragWord(null);
-    checkWin(newLocked, newSlots);
+    setDragState(null);
+    checkWin(newLocked);
   };
 
   const handleClear = () => {
@@ -119,23 +135,33 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
       setPool(prev => shuffle([...prev, ...toReturn]));
       return prevSlots.map((s, i) => locked[i] ? s : null);
     });
-    setDragWord(null);
+    setDragState(null);
   };
 
   // ── Mouse events ──
-  const onMouseDown = (e: React.MouseEvent, word: string, from: "pool" | "slot", slotIdx?: number) => {
+  const onMouseDown = (
+    e: React.MouseEvent,
+    word: string,
+    from: "pool" | "slot",
+    slotIdx?: number
+  ) => {
     if (finished) return;
     e.preventDefault();
     dragging.current = { word, from, slotIdx };
-    setDragWord(word);
+    setDragState({ word, x: e.clientX, y: e.clientY });
   };
 
   useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      setDragState(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+    };
     const onMouseUp = (e: MouseEvent) => {
       if (!dragging.current) return;
       const { word, from, slotIdx: fromSlot } = dragging.current;
       dragging.current = null;
-      setDragWord(null);
+      setDragState(null);
+
       for (let i = 0; i < slotRefs.current.length; i++) {
         const el = slotRefs.current[i];
         if (!el) continue;
@@ -149,24 +175,41 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
       }
       if (from === "slot" && fromSlot !== undefined) returnWordToPool(fromSlot);
     };
+    window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-    return () => window.removeEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
   }, [placeWord, returnWordToPool]);
 
   // ── Touch events ──
-  const onTouchStart = (e: React.TouchEvent, word: string, from: "pool" | "slot", slotIdx?: number) => {
+  const onTouchStart = (
+    e: React.TouchEvent,
+    word: string,
+    from: "pool" | "slot",
+    slotIdx?: number
+  ) => {
     if (finished) return;
+    const touch = e.touches[0];
     dragging.current = { word, from, slotIdx };
-    setDragWord(word);
+    setDragState({ word, x: touch.clientX, y: touch.clientY });
   };
 
   useEffect(() => {
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragging.current) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      setDragState(prev => prev ? { ...prev, x: touch.clientX, y: touch.clientY } : null);
+    };
     const onTouchEnd = (e: TouchEvent) => {
       if (!dragging.current) return;
       const touch = e.changedTouches[0];
       const { word, from, slotIdx: fromSlot } = dragging.current;
       dragging.current = null;
-      setDragWord(null);
+      setDragState(null);
+
       for (let i = 0; i < slotRefs.current.length; i++) {
         const el = slotRefs.current[i];
         if (!el) continue;
@@ -180,8 +223,12 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
       }
       if (from === "slot" && fromSlot !== undefined) returnWordToPool(fromSlot);
     };
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd);
-    return () => window.removeEventListener("touchend", onTouchEnd);
+    return () => {
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
   }, [placeWord, returnWordToPool]);
 
   const allFilled = slots.every((s, i) => locked[i] || s !== null);
@@ -195,21 +242,36 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 items-start justify-center">
+
+      {/* ── Ghost element שזזה עם הסמן ── */}
+      {dragState && (
+        <div
+          style={{
+            position: "fixed",
+            left: dragState.x - CIRCLE_SIZE / 2,
+            top: dragState.y - CIRCLE_SIZE / 2,
+            width: CIRCLE_SIZE,
+            height: CIRCLE_SIZE,
+            pointerEvents: "none",
+            zIndex: 9999,
+          }}
+          className="rounded-full border-2 border-brand-accent bg-brand-accent text-white flex items-center justify-center text-sm font-bold opacity-90 shadow-lg"
+        >
+          {dragState.word}
+        </div>
+      )}
+
+      <div className="flex items-start justify-center" style={{ gap: CIRCLE_SIZE }}>
 
         {/* עמודה שמאל */}
-        <div className="flex flex-col gap-3 items-end pt-20 flex-1">
+        <div className="flex flex-col gap-3 items-end pt-20">
           {leftPool.map(word => (
             <div
               key={word}
-              style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }}
+              style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE, opacity: dragState?.word === word ? 0.3 : 1 }}
               onMouseDown={e => onMouseDown(e, word, "pool")}
               onTouchStart={e => onTouchStart(e, word, "pool")}
-              className={`${circleBase} cursor-grab active:cursor-grabbing ${
-                dragWord === word
-                  ? "bg-brand-accent border-brand-accent text-white opacity-60 scale-95"
-                  : "bg-brand-surface border-brand-border text-brand-text hover:border-brand-accent"
-              }`}
+              className={`${circleBase} cursor-grab active:cursor-grabbing bg-yellow-100 border-yellow-400 text-yellow-900`}
             >
               {word}
             </div>
@@ -241,11 +303,15 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
                   locked[i]
                     ? "bg-green-400 border-green-400 text-white cursor-default"
                     : slots[i]
-                    ? "bg-brand-accent border-brand-accent text-white cursor-grab active:cursor-grabbing"
+                    ? dragState?.word === slots[i]
+                      ? "border-brand-accent border-dashed bg-brand-surface opacity-40 cursor-grab"
+                      : "bg-brand-accent border-brand-accent text-white cursor-grab active:cursor-grabbing"
+                    : dragState
+                    ? "border-brand-accent border-dashed bg-brand-accent/10 cursor-default"
                     : "border-dashed border-brand-muted bg-brand-surface cursor-default"
                 }`}
               >
-                {slots[i] ?? ""}
+                {(dragState?.word === slots[i] && !locked[i]) ? "" : (slots[i] ?? "")}
               </div>
             </div>
           ))}
@@ -260,18 +326,14 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
         </div>
 
         {/* עמודה ימין */}
-        <div className="flex flex-col gap-3 items-start pt-20 flex-1">
+        <div className="flex flex-col gap-3 items-start pt-20">
           {rightPool.map(word => (
             <div
               key={word}
-              style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }}
+              style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE, opacity: dragState?.word === word ? 0.3 : 1 }}
               onMouseDown={e => onMouseDown(e, word, "pool")}
               onTouchStart={e => onTouchStart(e, word, "pool")}
-              className={`${circleBase} cursor-grab active:cursor-grabbing ${
-                dragWord === word
-                  ? "bg-brand-accent border-brand-accent text-white opacity-60 scale-95"
-                  : "bg-brand-surface border-brand-border text-brand-text hover:border-brand-accent"
-              }`}
+              className={`${circleBase} cursor-grab active:cursor-grabbing bg-yellow-100 border-yellow-400 text-yellow-900`}
             >
               {word}
             </div>
