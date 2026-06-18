@@ -12,7 +12,7 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-const CIRCLE_SIZE = 64; // px – גודל אחיד לכל העיגולים
+const CIRCLE_SIZE = 64;
 
 export default function ChainGame({ data }: { data: ChainDataExtended }) {
   const answers = data.links.map(l => l.answer);
@@ -25,18 +25,13 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
   const [hintsUsed, setHintsUsed] = useState(0);
   const [finished, setFinished] = useState(false);
   const [won, setWon] = useState(false);
-
-  // גרירה
-  const dragging = useRef<{ word: string; from: "pool" | "slot"; slotIdx?: number } | null>(null);
   const [dragWord, setDragWord] = useState<string | null>(null);
 
-  // refs לחריצים ול-pool circles כדי לזהות drop
+  const dragging = useRef<{ word: string; from: "pool" | "slot"; slotIdx?: number } | null>(null);
   const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const poolRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
   const norm = (s: string) => s.trim().toLowerCase();
 
-  // ── ניצחון ──
   const checkWin = useCallback((newLocked: boolean[], newSlots: (string | null)[]) => {
     if (newLocked.every(Boolean)) {
       const score = calcScore(100, hintsUsed, data.links.length);
@@ -47,28 +42,58 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
     }
   }, [hintsUsed, data.links.length]);
 
-  // ── אישור ──
-  const handleCheck = useCallback(() => {
-    if (slots.some((s, i) => !locked[i] && s === null)) return;
-    const newLocked = [...locked];
-    const newSlots = [...slots];
-    const returnToPool: string[] = [];
-    slots.forEach((word, i) => {
-      if (locked[i]) return;
-      if (word !== null && norm(word) === norm(answers[i])) {
-        newLocked[i] = true;
-      } else if (word !== null) {
-        returnToPool.push(word);
-        newSlots[i] = null;
+  const placeWord = useCallback((word: string, fromPool: boolean, fromSlotIdx: number | undefined, toSlotIdx: number) => {
+    if (locked[toSlotIdx]) return;
+    setSlots(prevSlots => {
+      const prevInSlot = prevSlots[toSlotIdx];
+      const newSlots = [...prevSlots];
+      newSlots[toSlotIdx] = word;
+      if (!fromPool && fromSlotIdx !== undefined) {
+        newSlots[fromSlotIdx] = prevInSlot;
       }
+      if (fromPool) {
+        setPool(prev => {
+          const next = prev.filter(w => w !== word);
+          if (prevInSlot !== null) next.push(prevInSlot);
+          return next;
+        });
+      }
+      return newSlots;
     });
-    setLocked(newLocked);
-    setSlots(newSlots);
-    setPool(prev => [...prev, ...returnToPool]);
-    checkWin(newLocked, newSlots);
-  }, [slots, locked, answers, checkWin]);
+  }, [locked]);
 
-  // ── רמז ──
+  const returnWordToPool = useCallback((slotIdx: number) => {
+    setSlots(prevSlots => {
+      if (locked[slotIdx] || prevSlots[slotIdx] === null) return prevSlots;
+      const word = prevSlots[slotIdx]!;
+      const newSlots = [...prevSlots];
+      newSlots[slotIdx] = null;
+      setPool(prev => [...prev, word]);
+      return newSlots;
+    });
+  }, [locked]);
+
+  const handleCheck = useCallback(() => {
+    setSlots(prevSlots => {
+      const newLocked = [...locked];
+      const newSlots = [...prevSlots];
+      const returnToPool: string[] = [];
+      prevSlots.forEach((word, i) => {
+        if (locked[i]) return;
+        if (word !== null && norm(word) === norm(answers[i])) {
+          newLocked[i] = true;
+        } else if (word !== null) {
+          returnToPool.push(word);
+          newSlots[i] = null;
+        }
+      });
+      setLocked(newLocked);
+      setPool(prev => [...prev, ...returnToPool]);
+      checkWin(newLocked, newSlots);
+      return newSlots;
+    });
+  }, [locked, answers, checkWin]);
+
   const handleHint = () => {
     const idx = answers.findIndex((ans, i) => !locked[i] && slots[i] !== ans);
     if (idx === -1) return;
@@ -77,7 +102,7 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
     const newSlots = [...slots]; newSlots[idx] = correctWord;
     const newLocked = [...locked]; newLocked[idx] = true;
     setPool(prev => {
-      let next = prev.filter(w => w !== correctWord);
+      const next = prev.filter(w => w !== correctWord);
       if (prevInSlot !== null && prevInSlot !== correctWord) next.push(prevInSlot);
       return next;
     });
@@ -88,46 +113,16 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
     checkWin(newLocked, newSlots);
   };
 
-  // ── ניקוי ──
   const handleClear = () => {
-    const toReturn = slots.filter((s, i) => !locked[i] && s !== null) as string[];
-    setSlots(prev => prev.map((s, i) => locked[i] ? s : null));
-    setPool(prev => shuffle([...prev, ...toReturn]));
+    setSlots(prevSlots => {
+      const toReturn = prevSlots.filter((s, i) => !locked[i] && s !== null) as string[];
+      setPool(prev => shuffle([...prev, ...toReturn]));
+      return prevSlots.map((s, i) => locked[i] ? s : null);
+    });
     setDragWord(null);
   };
 
-  // ── הנח מילה בחריץ ──
-  const placeWord = useCallback((word: string, fromPool: boolean, fromSlotIdx: number | undefined, toSlotIdx: number) => {
-    if (locked[toSlotIdx]) return;
-    const prevInSlot = slots[toSlotIdx];
-    const newSlots = [...slots];
-    newSlots[toSlotIdx] = word;
-    setSlots(newSlots);
-    if (fromPool) {
-      setPool(prev => {
-        const next = prev.filter(w => w !== word);
-        if (prevInSlot !== null) next.push(prevInSlot);
-        return next;
-      });
-    } else if (fromSlotIdx !== undefined) {
-      const s2 = [...newSlots];
-      s2[fromSlotIdx] = prevInSlot;
-      setSlots(s2);
-    }
-  }, [slots, locked]);
-
-  // ── החזר מילה ל-pool ──
-  const returnToPool = useCallback((slotIdx: number) => {
-    if (locked[slotIdx] || slots[slotIdx] === null) return;
-    const word = slots[slotIdx]!;
-    const newSlots = [...slots]; newSlots[slotIdx] = null;
-    setSlots(newSlots);
-    setPool(prev => [...prev, word]);
-  }, [slots, locked]);
-
-  // ══════════════════════════════════════════
-  // DRAG & DROP – Mouse
-  // ══════════════════════════════════════════
+  // ── Mouse events ──
   const onMouseDown = (e: React.MouseEvent, word: string, from: "pool" | "slot", slotIdx?: number) => {
     if (finished) return;
     e.preventDefault();
@@ -141,8 +136,6 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
       const { word, from, slotIdx: fromSlot } = dragging.current;
       dragging.current = null;
       setDragWord(null);
-
-      // בדוק אם הפלה על חריץ
       for (let i = 0; i < slotRefs.current.length; i++) {
         const el = slotRefs.current[i];
         if (!el) continue;
@@ -154,18 +147,13 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
           return;
         }
       }
-      // אם גרר מחריץ ולא הפיל על שום מקום – החזר ל-pool
-      if (from === "slot" && fromSlot !== undefined) {
-        returnToPool(fromSlot);
-      }
+      if (from === "slot" && fromSlot !== undefined) returnWordToPool(fromSlot);
     };
     window.addEventListener("mouseup", onMouseUp);
     return () => window.removeEventListener("mouseup", onMouseUp);
-  }, [placeWord, returnToPool]);
+  }, [placeWord, returnWordToPool]);
 
-  // ══════════════════════════════════════════
-  // DRAG & DROP – Touch
-  // ══════════════════════════════════════════
+  // ── Touch events ──
   const onTouchStart = (e: React.TouchEvent, word: string, from: "pool" | "slot", slotIdx?: number) => {
     if (finished) return;
     dragging.current = { word, from, slotIdx };
@@ -179,7 +167,6 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
       const { word, from, slotIdx: fromSlot } = dragging.current;
       dragging.current = null;
       setDragWord(null);
-
       for (let i = 0; i < slotRefs.current.length; i++) {
         const el = slotRefs.current[i];
         if (!el) continue;
@@ -191,17 +178,12 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
           return;
         }
       }
-      if (from === "slot" && fromSlot !== undefined) {
-        returnToPool(fromSlot);
-      }
+      if (from === "slot" && fromSlot !== undefined) returnWordToPool(fromSlot);
     };
     window.addEventListener("touchend", onTouchEnd);
     return () => window.removeEventListener("touchend", onTouchEnd);
-  }, [placeWord, returnToPool]);
+  }, [placeWord, returnWordToPool]);
 
-  // ══════════════════════════════════════════
-  // RENDER
-  // ══════════════════════════════════════════
   const allFilled = slots.every((s, i) => locked[i] || s !== null);
   const score = calcScore(100, hintsUsed, data.links.length);
   const shareText = `⛓️ פתרתי את "השרשרת"!\n${data.start} → ... → ${data.end}\nניקוד: ${score}`;
@@ -209,11 +191,7 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
   const leftPool = pool.filter((_, i) => i % 2 === 0);
   const rightPool = pool.filter((_, i) => i % 2 === 1);
 
-  const CircleStyle = `
-    rounded-full border-2 flex items-center justify-center
-    text-sm font-bold text-center leading-tight
-    cursor-grab active:cursor-grabbing select-none transition-all
-  `;
+  const circleBase = `rounded-full border-2 flex items-center justify-center text-sm font-bold text-center leading-tight select-none transition-all`;
 
   return (
     <div className="space-y-5">
@@ -224,11 +202,10 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
           {leftPool.map(word => (
             <div
               key={word}
-              ref={el => poolRefs.current.set(word, el)}
               style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }}
               onMouseDown={e => onMouseDown(e, word, "pool")}
               onTouchStart={e => onTouchStart(e, word, "pool")}
-              className={`${CircleStyle} ${
+              className={`${circleBase} cursor-grab active:cursor-grabbing ${
                 dragWord === word
                   ? "bg-brand-accent border-brand-accent text-white opacity-60 scale-95"
                   : "bg-brand-surface border-brand-border text-brand-text hover:border-brand-accent"
@@ -241,10 +218,9 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
 
         {/* שרשרת מרכזית */}
         <div className="flex flex-col items-center shrink-0">
-          {/* נקודת התחלה */}
           <div
             style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }}
-            className="rounded-full bg-gray-800 flex items-center justify-center text-white text-sm font-bold z-10"
+            className="rounded-full bg-gray-800 flex items-center justify-center text-white text-sm font-bold"
           >
             {data.start}
           </div>
@@ -261,14 +237,12 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
                 onTouchStart={slots[i] && !locked[i]
                   ? e => onTouchStart(e, slots[i]!, "slot", i)
                   : undefined}
-                className={`${CircleStyle} ${
+                className={`${circleBase} ${
                   locked[i]
                     ? "bg-green-400 border-green-400 text-white cursor-default"
                     : slots[i]
-                    ? dragWord === slots[i]
-                      ? "bg-brand-accent/50 border-brand-accent text-white opacity-60"
-                      : "bg-brand-accent border-brand-accent text-white"
-                    : "border-dashed border-brand-muted bg-brand-surface text-transparent cursor-default"
+                    ? "bg-brand-accent border-brand-accent text-white cursor-grab active:cursor-grabbing"
+                    : "border-dashed border-brand-muted bg-brand-surface cursor-default"
                 }`}
               >
                 {slots[i] ?? ""}
@@ -277,10 +251,9 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
           ))}
 
           <div className="w-px h-3 border-l-2 border-dashed border-brand-border" />
-          {/* נקודת סוף */}
           <div
             style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }}
-            className="rounded-full bg-gray-800 flex items-center justify-center text-white text-sm font-bold z-10"
+            className="rounded-full bg-gray-800 flex items-center justify-center text-white text-sm font-bold"
           >
             {data.end}
           </div>
@@ -291,11 +264,10 @@ export default function ChainGame({ data }: { data: ChainDataExtended }) {
           {rightPool.map(word => (
             <div
               key={word}
-              ref={el => poolRefs.current.set(word, el)}
               style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }}
               onMouseDown={e => onMouseDown(e, word, "pool")}
               onTouchStart={e => onTouchStart(e, word, "pool")}
-              className={`${CircleStyle} ${
+              className={`${circleBase} cursor-grab active:cursor-grabbing ${
                 dragWord === word
                   ? "bg-brand-accent border-brand-accent text-white opacity-60 scale-95"
                   : "bg-brand-surface border-brand-border text-brand-text hover:border-brand-accent"
