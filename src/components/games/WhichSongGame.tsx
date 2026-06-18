@@ -11,6 +11,7 @@ interface SongDataExtended {
   year: string;
   image?: string;
   audio?: string;
+  fullAudio?: string;
   lines: string[];
 }
 
@@ -22,7 +23,10 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
   const [won, setWon] = useState(false);
   const [wrong, setWrong] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlayingFull, setIsPlayingFull] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fullAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const totalLines = data.lines.length;
   const hintsUsed = (linesShown - 1) + (hintUsed ? 1 : 0);
@@ -38,6 +42,7 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
       window.dispatchEvent(new Event("score-updated"));
       setWon(true);
       setFinished(true);
+      setTimeout(() => setShowModal(true), 400);
     } else {
       setWrong(true);
       setTimeout(() => setWrong(false), 700);
@@ -62,6 +67,22 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
     }
   };
 
+  const handleFullAudio = () => {
+    if (!data.fullAudio) return;
+    if (!fullAudioRef.current) {
+      fullAudioRef.current = new Audio(data.fullAudio);
+      fullAudioRef.current.onended = () => setIsPlayingFull(false);
+    }
+    if (isPlayingFull) {
+      fullAudioRef.current.pause();
+      fullAudioRef.current.currentTime = 0;
+      setIsPlayingFull(false);
+    } else {
+      fullAudioRef.current.play();
+      setIsPlayingFull(true);
+    }
+  };
+
   const score = calcScore(100, hintsUsed, totalHints);
   const shareText = `🎵 פתרתי את "איזה שיר"!\nניקוד: ${score}`;
 
@@ -74,7 +95,60 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
   return (
     <div className="space-y-6">
 
-      {/* ── Header: תמונה מימין + מידע משמאל ── */}
+      {/* ── Modal ניצחון ── */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl overflow-hidden max-w-sm w-full shadow-2xl animate-bounce-in"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* תמונה גדולה */}
+            <div className="relative w-full aspect-video bg-gray-100">
+              {data.image ? (
+                <Image
+                  src={data.image}
+                  alt={data.songTitle}
+                  fill
+                  className="object-cover"
+                  sizes="400px"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-5xl">🎵</div>
+              )}
+            </div>
+
+            {/* מידע */}
+            <div className="p-5 space-y-4 text-center">
+              <div>
+                <p style={{ ...songFont, fontSize: "1.4rem" }} className="text-gray-900">{data.songTitle}</p>
+                <p style={{ ...songFont, fontWeight: 400 }} className="text-gray-500 text-base">{data.artist} · {data.year}</p>
+              </div>
+
+              {/* נגן שיר מלא */}
+              {data.fullAudio && (
+                <button
+                  onClick={handleFullAudio}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-brand-accent hover:bg-brand-accentHover text-white rounded-2xl font-medium text-sm transition-colors"
+                >
+                  {isPlayingFull ? "⏹ עצרו את השיר" : "▶ נגנו את השיר המלא"}
+                </button>
+              )}
+
+              <button
+                onClick={() => setShowModal(false)}
+                className="w-full py-2.5 border border-gray-200 rounded-2xl text-gray-500 text-sm hover:bg-gray-50 transition-colors"
+              >
+                חזרה למשחק
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Header ── */}
       <div className="flex gap-4 items-start" dir="rtl">
         <div className="shrink-0 w-24 h-24 rounded-2xl overflow-hidden bg-brand-surface relative shadow-lg">
           {data.image ? (
@@ -99,7 +173,6 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
           >
             {data.songTitle}
           </div>
-
           <div
             style={songFont}
             className={`text-base leading-tight transition-all duration-500 ${hintUsed || finished ? "text-brand-text" : "blur-sm select-none text-brand-muted"}`}
@@ -180,23 +253,23 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
 
       {/* ── שדה ניחוש ── */}
       {!finished && (
-        <div className={`flex gap-2 ${wrong ? "animate-shake" : ""}`} dir="rtl">
+        <div className={`space-y-2 ${wrong ? "animate-shake" : ""}`} dir="rtl">
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && check()}
             placeholder="מה שם השיר?"
-            className="flex-1 bg-brand-surface border border-brand-border rounded-2xl px-4 py-3 text-brand-text placeholder-brand-muted outline-none focus:border-brand-accent transition-colors text-right text-sm"
+            className="w-full bg-brand-surface border border-brand-border rounded-2xl px-4 py-3 text-brand-text placeholder-brand-muted outline-none focus:border-brand-accent transition-colors text-right text-sm"
             dir="rtl"
             autoComplete="off"
           />
           <button
             onClick={check}
             disabled={!input.trim()}
-            className="w-10 h-12 bg-brand-surface border border-brand-border rounded-2xl flex items-center justify-center text-brand-muted hover:border-brand-accent hover:text-brand-text transition-colors disabled:opacity-40 shrink-0"
+            className="w-full py-3 bg-brand-accent hover:bg-brand-accentHover disabled:opacity-40 text-white rounded-2xl font-bold text-sm transition-colors"
           >
-            ‹
+            בדיקה ✓
           </button>
         </div>
       )}
@@ -204,10 +277,12 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
       {/* ── תוצאה ── */}
       {finished && (
         <div className="space-y-3">
-          <div className="bg-brand-surface border border-brand-border rounded-2xl p-4 space-y-0.5" dir="rtl">
-            <p style={{ ...songFont, fontSize: "1.1rem" }} className="text-brand-text">{data.songTitle}</p>
-            <p style={{ ...songFont, fontWeight: 400 }} className="text-brand-muted text-sm">{data.artist} · {data.year}</p>
-          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="w-full py-2.5 bg-brand-surface border border-brand-border rounded-2xl text-brand-muted text-sm hover:border-brand-accent hover:text-brand-text transition-colors"
+          >
+            🎵 הצגת השיר המלא
+          </button>
           <GameResult solved={won} score={score} shareText={shareText} />
         </div>
       )}
