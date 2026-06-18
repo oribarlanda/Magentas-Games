@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { saveScore, calcScore } from "@/lib/storage";
 import GameResult from "@/components/ui/GameResult";
@@ -15,6 +15,70 @@ interface SongDataExtended {
   lines: string[];
 }
 
+function AudioPlayer({ src }: { src: string }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    const a = new Audio(src);
+    audioRef.current = a;
+    a.onloadedmetadata = () => setDuration(a.duration);
+    a.ontimeupdate = () => setCurrent(a.currentTime);
+    a.onended = () => { setPlaying(false); setCurrent(0); };
+    return () => { a.pause(); };
+  }, [src]);
+
+  const toggle = () => {
+    if (!audioRef.current) return;
+    if (playing) { audioRef.current.pause(); setPlaying(false); }
+    else { audioRef.current.play(); setPlaying(true); }
+  };
+
+  const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value);
+    if (audioRef.current) audioRef.current.currentTime = val;
+    setCurrent(val);
+  };
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="flex items-center gap-3 bg-gray-100 rounded-2xl px-4 py-3">
+      {/* כפתור play/pause */}
+      <button
+        onClick={toggle}
+        className="w-9 h-9 rounded-full bg-brand-accent hover:bg-brand-accentHover text-white flex items-center justify-center shrink-0 transition-colors text-sm"
+      >
+        {playing ? "⏸" : "▶"}
+      </button>
+
+      {/* זמן + פס גלילה */}
+      <div className="flex-1 space-y-1">
+        <input
+          type="range"
+          min={0}
+          max={duration || 1}
+          step={0.1}
+          value={current}
+          onChange={seek}
+          className="w-full h-1.5 rounded-full accent-brand-accent cursor-pointer"
+          style={{ accentColor: "#6C63FF" }}
+        />
+        <div className="flex justify-between text-xs text-gray-400 font-mono">
+          <span>{fmt(current)}</span>
+          <span>{fmt(duration)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WhichSongGame({ data }: { data: SongDataExtended }) {
   const [input, setInput] = useState("");
   const [linesShown, setLinesShown] = useState(1);
@@ -23,10 +87,8 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
   const [won, setWon] = useState(false);
   const [wrong, setWrong] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isPlayingFull, setIsPlayingFull] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fullAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const totalLines = data.lines.length;
   const hintsUsed = (linesShown - 1) + (hintUsed ? 1 : 0);
@@ -67,22 +129,6 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
     }
   };
 
-  const handleFullAudio = () => {
-    if (!data.fullAudio) return;
-    if (!fullAudioRef.current) {
-      fullAudioRef.current = new Audio(data.fullAudio);
-      fullAudioRef.current.onended = () => setIsPlayingFull(false);
-    }
-    if (isPlayingFull) {
-      fullAudioRef.current.pause();
-      fullAudioRef.current.currentTime = 0;
-      setIsPlayingFull(false);
-    } else {
-      fullAudioRef.current.play();
-      setIsPlayingFull(true);
-    }
-  };
-
   const score = calcScore(100, hintsUsed, totalHints);
   const shareText = `🎵 פתרתי את "איזה שיר"!\nניקוד: ${score}`;
 
@@ -105,37 +151,26 @@ export default function WhichSongGame({ data }: { data: SongDataExtended }) {
             className="bg-white rounded-3xl overflow-hidden max-w-sm w-full shadow-2xl animate-bounce-in"
             onClick={e => e.stopPropagation()}
           >
-            {/* תמונה גדולה */}
-            <div className="relative w-full aspect-video bg-gray-100">
-              {data.image ? (
-                <Image
+            {/* תמונה מלאה – לא חתוכה */}
+            {data.image && (
+              <div className="w-full bg-gray-100">
+                <img
                   src={data.image}
                   alt={data.songTitle}
-                  fill
-                  className="object-cover"
-                  sizes="400px"
+                  className="w-full h-auto object-contain"
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-5xl">🎵</div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* מידע */}
-            <div className="p-5 space-y-4 text-center">
-              <div>
-                <p style={{ ...songFont, fontSize: "1.4rem" }} className="text-gray-900">{data.songTitle}</p>
-                <p style={{ ...songFont, fontWeight: 400 }} className="text-gray-500 text-base">{data.artist} · {data.year}</p>
+            <div className="p-5 space-y-4">
+              {/* מידע */}
+              <div className="text-center">
+                <p style={{ ...songFont, fontSize: "1.3rem" }} className="text-gray-900">{data.songTitle}</p>
+                <p style={{ ...songFont, fontWeight: 400 }} className="text-gray-500 text-sm">{data.artist} · {data.year}</p>
               </div>
 
               {/* נגן שיר מלא */}
-              {data.fullAudio && (
-                <button
-                  onClick={handleFullAudio}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-brand-accent hover:bg-brand-accentHover text-white rounded-2xl font-medium text-sm transition-colors"
-                >
-                  {isPlayingFull ? "⏹ עצרו את השיר" : "▶ נגנו את השיר המלא"}
-                </button>
-              )}
+              {data.fullAudio && <AudioPlayer src={data.fullAudio} />}
 
               <button
                 onClick={() => setShowModal(false)}
